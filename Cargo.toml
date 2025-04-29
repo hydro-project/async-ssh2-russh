@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = ["async-promise", "async-ssh2-russh"]
+
+[workspace.package]
+license = "Apache-2.0"
+repository = "https://github.com/hydro-project/async-ssh2-russh"
+
+[workspace.lints.rust]
+impl_trait_overcaptures = "warn"
+missing_unsafe_on_extern = "deny"
+unsafe_attr_outside_unsafe = "deny"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+explicit_into_iter_loop = "warn"
+let_and_return = "allow"
+uninlined_format_args = "allow"
+upper_case_acronyms = "warn"

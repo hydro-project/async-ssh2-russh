@@ -1,0 +1,2 @@
+[build]
+RUSTDOCFLAGS = "--cfg docsrs"

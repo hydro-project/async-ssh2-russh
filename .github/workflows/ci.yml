@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/**
+  pull_request:
+  schedule:
+    - cron: "35 03 * * *" # Daily at 8:35 PM PDT, 7:35 PM PST.
+  workflow_dispatch:
+    inputs:
+      should_bench:
+        description: "Should Benchmark? (`true`)"
+        required: true
+        default: "false"
+
+jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5.3.1
+        with:
+          cancel_others: "true"
+
+  fmt:
+    name: Format Code
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' || github.event_name != 'pull_request' }}
+    timeout-minutes: 10
+    needs: pre_job
+    runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo fmt --all -- --check
+
+  lints:
+    name: Clippy and Check
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' || github.event_name != 'pull_request' }}
+    timeout-minutes: 20
+    needs: pre_job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo check --all-targets --all-features
+      - run: cargo check --all-targets --no-default-features
+
+  test:
+    name: Test
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' || github.event_name != 'pull_request' }}
+    timeout-minutes: 10
+    needs: pre_job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --all-targets --no-fail-fast --all-features
+      - run: cargo test --doc --no-fail-fast --all-features
+
+  miri:
+    name: Miri
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' || github.event_name != 'pull_request' }}
+    timeout-minutes: 10
+    needs: pre_job
+    runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add miri
+      - run: cargo miri test --no-fail-fast --all-targets --all-features
+
+  doc:
+    name: Docs
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+      RUSTUP_TOOLCHAIN: nightly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs -p async-promise
+      - run: cargo docs-rs -p async-ssh2-russh
+
+  msrv:
+    name: Verify MSRV
+    needs: pre_job
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo install cargo-msrv --no-default-features
+      - run: cargo msrv verify --path async-promise
+      - run: cargo msrv verify --path async-ssh2-russh

@@ -1,0 +1,28 @@
+[package]
+name = "async-ssh2-russh"
+publish = true
+version = "0.1.0"
+documentation = "https://docs.rs/async-ssh2-russh/"
+description = "Lighweight async ssh2 client, wrapping russh."
+readme = "../README.md"
+edition = "2021"
+rust-version = "1.81.0"
+repository = { workspace = true }
+license = { workspace = true }
+
+[lints]
+workspace = true
+
+[features]
+sftp = [ "russh-sftp" ]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+async-promise = { version = "0.1.0", path = "../async-promise" }
+russh = "0.52.0-beta.1"
+russh-sftp = { optional = true, version = "2.1.0" }
+thiserror = ">=1.0.30, <3.0.0" # We do not depend on the breaking changed behavior: https://github.com/dtolnay/thiserror/releases/tag/2.0.0
+tokio = "1.29.0"
+tracing = "0.1.0"

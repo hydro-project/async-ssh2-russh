@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Specify how to bump the version for Hydro crates. Does not affect dependencies."
+        required: true
+        default: "keep"
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+          - keep
+          - auto
+      execute:
+        description: "Actually execute and publish the release?"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  release_job:
+    name: Release Job
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/orgs/community/discussions/25305#discussioncomment-8256560
+      # Unfortunately branch protection means that this workflow can't push the updated changelogs
+      # and tags to `main` in the normal way. Instead we have an app:
+      # https://github.com/organizations/hydro-project/settings/apps/hydro-project-bot
+      # Which is added the the users allowed to bypass branch protections:
+      # https://github.com/hydro-project/hydro/settings/branches
+      # We grab a token from the app using this action via the `APP_ID` ("App ID") and an
+      # `APP_PRIVATE_KEY` ("Generate a private key").
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - run: |
+          echo "Version bump: $BUMP"
+          echo "Execute: $EXECUTE"
+        env:
+          BUMP: ${{ inputs.bump }}
+          EXECUTE: ${{ inputs.execute }}
+
+      # https://api.github.com/users/hydro-project-bot[bot]
+      - name: Configure git
+        run: |
+          git config --global user.name "hydro-project-bot[bot]"
+          git config --global user.email "132423234+hydro-project-bot[bot]@users.noreply.github.com"
+
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          # Fetch all commit history so smart-release can generate changelogs.
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Run cargo login
+        run: cargo login ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Install cargo-smart-release
+        run: cargo install cargo-smart-release
+
+      - name: Run cargo smart-release
+        # list lockstep-versioned packages at the end of this command
+        run: >-
+          cargo smart-release --update-crates-index
+          --no-changelog-preview --allow-fully-generated-changelogs
+          --bump ${{ inputs.bump }} --bump-dependencies auto
+          ${{ inputs.execute && '--execute' || '--no-publish' }}
+          async-promise async-ssh2-russh
+          |& tee release.log
+        env:
+          # Make sure to set this so the `gh` CLI works using our token.
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+
+      - name: Check release.log for changelog review
+        run: |
+          if grep "WOULD ask for review" release.log; then
+            echo "Changelog review required. Please see the line above and check RELEASING.md for more details."
+            exit 1
+          fi

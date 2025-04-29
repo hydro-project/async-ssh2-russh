@@ -1,0 +1,18 @@
+[package]
+name = "async-promise"
+version = "0.1.0"
+documentation = "https://docs.rs/async-promise/"
+description = "Async promise which resolves once and may be read by multiple consumers."
+edition = "2021"
+rust-version = "1.71.0"
+license = { workspace = true }
+repository = { workspace = true }
+
+[dependencies]
+thiserror = ">=1.0.30, <3.0.0" # We do not depend on the breaking changed behavior: https://github.com/dtolnay/thiserror/releases/tag/2.0.0
+
+[dev-dependencies]
+tokio = { version = "1.29.0", features = ["macros", "rt"] }
+
+[lints]
+workspace = true
