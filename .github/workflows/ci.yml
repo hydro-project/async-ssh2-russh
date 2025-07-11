@@ -32,10 +32,28 @@ jobs:
     timeout-minutes: 10
     needs: pre_job
     runs-on: ubuntu-latest
-    env:
-      RUSTUP_TOOLCHAIN: nightly
     steps:
       - uses: actions/checkout@v4
+      - name: Debug Rust toolchain info
+        run: |
+          echo "=== Rustup version ==="
+          rustup --version
+          echo "=== Rustc version ==="
+          rustc --version
+          echo "=== Default toolchain ==="
+          rustup show
+          echo "=== Available components ==="
+          rustup component list
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - name: Debug after toolchain setup
+        run: |
+          echo "=== After toolchain setup ==="
+          rustc --version
+          rustup show
+          echo "=== Installed components ==="
+          rustup component list --installed
       - run: cargo fmt --all -- --check
 
   lints:
