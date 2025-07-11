@@ -34,28 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Debug Rust toolchain info
-        run: |
-          echo "=== Rustup version ==="
-          rustup --version
-          echo "=== Rustc version ==="
-          rustc --version
-          echo "=== Default toolchain ==="
-          rustup show
-          echo "=== Available components ==="
-          rustup component list
-          echo "=== Installed components ==="
-          rustup component list --installed
-      # - uses: dtolnay/rust-toolchain@nightly
-      #   with:
-      #     components: rustfmt
-      # - name: Debug after toolchain setup
-      #   run: |
-      #     echo "=== After toolchain setup ==="
-      #     rustc --version
-      #     rustup show
-      #     echo "=== Installed components ==="
-      #     rustup component list --installed
+      - run: rustup update # For some reason cargo-fmt doesn't give rustup time to auto-install.
       - run: cargo fmt --all -- --check
 
   lints:
