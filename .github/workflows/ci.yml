@@ -32,10 +32,9 @@ jobs:
     timeout-minutes: 10
     needs: pre_job
     runs-on: ubuntu-latest
-    env:
-      RUSTUP_TOOLCHAIN: nightly
     steps:
       - uses: actions/checkout@v4
+      - run: rustup update # For some reason cargo-fmt doesn't give rustup time to auto-install.
       - run: cargo fmt --all -- --check
 
   lints:
