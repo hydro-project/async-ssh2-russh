@@ -44,6 +44,8 @@ jobs:
           rustup show
           echo "=== Available components ==="
           rustup component list
+          echo "=== Installed components ==="
+          rustup component list --installed
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
