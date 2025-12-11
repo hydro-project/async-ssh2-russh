@@ -66,8 +66,8 @@ println!("Command finished with exit status: {:?}", channel.recv_exit_status().w
 
 // Send close to server.
 channel.close().await.unwrap();
-// Wait to receive close back.
-channel.wait_close().await;
+// Wait for channel to close.
+channel.closed().wait().await;
 
 # };
 ```

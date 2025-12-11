@@ -42,6 +42,14 @@ impl<T> Promise<T> {
             .ok_or(PromiseError::Empty)
             .and_then(|value_opt| value_opt.ok_or(PromiseError::Dropped))
     }
+
+    /// Returns if the `Resolver` has been resolved OR dropped.
+    ///
+    /// * `true` indicates the `Promise` is complete, either by resolving or dropping.
+    /// * `false` indicates the value may still resolve in the future.
+    pub fn is_done(&self) -> bool {
+        self.inner.get().is_some()
+    }
 }
 
 /// An error that may occur when trying to get the value from a [`Promise`], see [`Promise::try_get`].
@@ -265,8 +273,14 @@ mod tests {
     async fn test_dropped() {
         let (resolve, promise) = channel::<i32>();
 
+        // The promise should still be active.
+        assert!(!promise.is_done());
+
         // Drop the resolver without resolving it.
         drop(resolve);
+
+        // The promise should be done
+        assert!(promise.is_done());
 
         // The promise should return an error when trying to get the value.
         assert_eq!(promise.try_get(), Err(PromiseError::Dropped));

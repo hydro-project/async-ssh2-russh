@@ -3,6 +3,7 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/", env!("CARGO_PKG_README")))]
 
 use std::collections::HashMap;
+use std::convert::Infallible as Never;
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
@@ -137,7 +138,8 @@ pub struct AsyncChannel {
     success_failure: Promise<bool>,
     eof: Promise<()>,
     exit_status: Promise<u32>,
-    reader: JoinHandle<()>,
+    closed: Promise<Never>,
+    _reader: JoinHandle<()>,
 }
 
 impl From<russh::Channel<Msg>> for AsyncChannel {
@@ -146,9 +148,13 @@ impl From<russh::Channel<Msg>> for AsyncChannel {
         let (mut resolve_success_failure, success_failure) = async_promise::channel();
         let (mut resolve_eof, eof) = async_promise::channel();
         let (mut resolve_exit_status, exit_status) = async_promise::channel();
+        let (resolve_closed, closed) = async_promise::channel();
         let (subscribe_send, mut subscribe_recv) = mpsc::unbounded_channel();
 
         let reader = async move {
+            // When the reader exits, (even due to panic, which would be a bug), this will resolve dropped.
+            let _resolve_closed_drop = resolve_closed;
+
             // Map from `ext` to a sender for `CryptoVec`s of data.
             type Subscribers = HashMap<Option<u32>, mpsc::UnboundedSender<CryptoVec>>;
             let mut subscribers = Some(Subscribers::new());
@@ -224,7 +230,6 @@ impl From<russh::Channel<Msg>> for AsyncChannel {
                 }
             }
             tracing::debug!("Channel read half finished, reader exiting.");
-            // Exiting causes the `self.reader` `JoinHandle` to close.
         };
         let reader = tokio::task::spawn(reader.instrument(tracing::info_span!("Reader")));
 
@@ -234,7 +239,8 @@ impl From<russh::Channel<Msg>> for AsyncChannel {
             success_failure,
             eof,
             exit_status,
-            reader,
+            closed,
+            _reader: reader,
         }
     }
 }
@@ -307,16 +313,15 @@ impl AsyncChannel {
         &self.exit_status
     }
 
-    /// Returns when the channel has been closed.
+    /// Resolves as dropped when the channel reader exits.
     ///
+    /// Calling `.wait()` on this promise will return `None` when the reader exits, since `Never` cannot be constructed.
+    /// The expected usage pattern is `channel.closed().wait().await` to wait for the channel to close.
     /// After this point, no more events will resolve.
-    pub async fn wait_close(&mut self) {
-        let _ = (&mut self.reader).await;
-    }
-
-    /// Returns if the channel has been closed. See [`Self::wait_close`].
-    pub fn is_closed(&self) -> bool {
-        self.reader.is_finished()
+    ///
+    /// Use `channel.closed().is_done()` to check if the channel is closed, without waiting.
+    pub fn closed(&self) -> &Promise<Never> {
+        &self.closed
     }
 }
 
