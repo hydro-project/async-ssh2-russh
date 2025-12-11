@@ -124,14 +124,14 @@ impl<H: Handler> Deref for AsyncSession<H> {
 /// # Shutdown Lifecycle
 ///
 /// During shutdown, events _may_ be received in the following order. However this should not be relied upon, as the
-/// order may be different and none of these events are guaranteed to occur, except for [`Self::wait_close`] which will
+/// order may be different and none of these events are guaranteed to occur, except for [`Self::closed`] which will
 /// always happen last.
 ///
 /// 1. [`Self::recv_success_failure`].
 /// 2. [`Self::recv_eof`] - Guarantees all stream data has been received, i.e. stdout/stderr will produce no more data.
 ///    Channels may be closed without sending EOF; see [this StackOverflow answer](https://stackoverflow.com/a/23257958).
 /// 3. [`Self::recv_exit_status`] - The exit status of the command run, if applicable.
-/// 4. [`Self::wait_close`] - This channel is closed, no more events will occur.
+/// 4. [`Self::closed`] - This channel is closed, no more events will occur.
 pub struct AsyncChannel {
     write_half: ChannelWriteHalf<Msg>,
     subscribe_send: mpsc::UnboundedSender<(Option<u32>, mpsc::UnboundedSender<CryptoVec>)>,
