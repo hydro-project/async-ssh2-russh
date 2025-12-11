@@ -94,20 +94,20 @@ dependencies = [
 
 [[package]]
 name = "async-promise"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "thiserror 2.0.12",
+ "thiserror 1.0.69",
  "tokio",
 ]
 
 [[package]]
 name = "async-ssh2-russh"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-promise",
  "russh",
  "russh-sftp",
- "thiserror 2.0.12",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
 ]

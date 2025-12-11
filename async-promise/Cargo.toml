@@ -1,6 +1,6 @@
 [package]
 name = "async-promise"
-version = "0.1.0"
+version = "0.1.1"
 documentation = "https://docs.rs/async-promise/"
 description = "Async promise which resolves once and may be read by multiple consumers."
 edition = "2021"
