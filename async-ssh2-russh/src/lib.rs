@@ -282,16 +282,14 @@ impl AsyncChannel {
     /// Returns the specified stream as an [`impl AsyncWrite`](AsyncWrite).
     ///
     /// When this is called for the same `ext` more than once, writes to each may be interleaved.
-    #[expect(impl_trait_overcaptures, reason = "fix when upgrading to edition 2024.")]
-    pub fn write_stream(&self, ext: Option<u32>) -> impl AsyncWrite {
+    pub fn write_stream(&self, ext: Option<u32>) -> impl use<'_> + 'static + AsyncWrite {
         self.write_half.make_writer_ext(ext)
     }
 
     /// Returns stdin as an [`impl AsyncWrite`](AsyncWrite).
     ///
     /// When this is called more than once, writes to each may be interleaved.
-    #[expect(impl_trait_overcaptures, reason = "fix when upgrading to edition 2024.")]
-    pub fn stdin(&self) -> impl AsyncWrite {
+    pub fn stdin(&self) -> impl use<'_> + 'static + AsyncWrite {
         self.write_stream(None)
     }
 
