@@ -8,9 +8,10 @@ use std::ops::Deref;
 use std::path::Path;
 use std::sync::Arc;
 
+use bytes::Bytes;
 use russh::client::{connect, Config, Handle, Handler, Msg};
-use russh::keys::{load_secret_key, ssh_key, PrivateKeyWithHashAlg};
-use russh::{ChannelMsg, ChannelWriteHalf, CryptoVec};
+use russh::keys::{load_secret_key, PrivateKeyWithHashAlg, PublicKeyOrCertificate};
+use russh::{ChannelMsg, ChannelWriteHalf};
 use tokio::io::AsyncWrite;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::mpsc;
@@ -20,14 +21,16 @@ use tokio::task::JoinHandle;
 #[cfg(feature = "sftp")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sftp")))]
 pub mod sftp;
+pub use async_promise;
 use async_promise::Promise;
+pub use russh;
 #[doc(no_inline)]
 pub use russh::Error as SshError;
 #[cfg(feature = "sftp")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sftp")))]
 pub use russh_sftp;
+pub use tokio;
 use tracing::Instrument;
-pub use {async_promise, russh, tokio};
 mod read_stream;
 pub use read_stream::ReadStream;
 
@@ -42,7 +45,7 @@ pub struct NoCheckHandler;
 impl Handler for NoCheckHandler {
     type Error = SshError;
 
-    async fn check_server_key(&mut self, _server_public_key: &ssh_key::PublicKey) -> Result<bool, Self::Error> {
+    async fn check_server_key(&mut self, _server_public_key: &PublicKeyOrCertificate) -> Result<bool, Self::Error> {
         Ok(true)
     }
 }
@@ -134,7 +137,7 @@ impl<H: Handler> Deref for AsyncSession<H> {
 /// 4. [`Self::closed`] - This channel is closed, no more events will occur.
 pub struct AsyncChannel {
     write_half: ChannelWriteHalf<Msg>,
-    subscribe_send: mpsc::UnboundedSender<(Option<u32>, mpsc::UnboundedSender<CryptoVec>)>,
+    subscribe_send: mpsc::UnboundedSender<(Option<u32>, mpsc::UnboundedSender<Bytes>)>,
     success_failure: Promise<bool>,
     eof: Promise<()>,
     exit_status: Promise<u32>,
@@ -155,12 +158,12 @@ impl From<russh::Channel<Msg>> for AsyncChannel {
             // When the reader exits, (even due to panic, which would be a bug), this will resolve dropped.
             let _resolve_closed_drop = resolve_closed;
 
-            // Map from `ext` to a sender for `CryptoVec`s of data.
-            type Subscribers = HashMap<Option<u32>, mpsc::UnboundedSender<CryptoVec>>;
+            // Map from `ext` to a sender for `Bytes` of data.
+            type Subscribers = HashMap<Option<u32>, mpsc::UnboundedSender<Bytes>>;
             let mut subscribers = Some(Subscribers::new());
 
             #[tracing::instrument(level = "INFO", skip_all, fields(?ext))]
-            fn receive_data(subscribers: &Option<Subscribers>, ext: Option<u32>, data: CryptoVec) {
+            fn receive_data(subscribers: &Option<Subscribers>, ext: Option<u32>, data: Bytes) {
                 if let Some(subscribers) = &subscribers {
                     if let Some(send) = subscribers.get(&ext) {
                         if let Err(e) = send.send(data) {
