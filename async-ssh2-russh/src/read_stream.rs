@@ -2,7 +2,7 @@ use std::io::{BufRead, Read};
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 
-use russh::CryptoVec;
+use bytes::Bytes;
 use tokio::io::{AsyncBufRead, AsyncRead, ReadBuf};
 use tokio::sync::mpsc;
 
@@ -10,11 +10,11 @@ use tokio::sync::mpsc;
 ///
 /// Implements [`AsyncRead`], [`AsyncBufRead`], [`Read`], and [`BufRead`].
 pub struct ReadStream {
-    recv: mpsc::UnboundedReceiver<CryptoVec>,
-    buffer: Option<(CryptoVec, usize)>,
+    recv: mpsc::UnboundedReceiver<Bytes>,
+    buffer: Option<(Bytes, usize)>,
 }
 impl ReadStream {
-    pub(crate) fn from_recv(recv: mpsc::UnboundedReceiver<CryptoVec>) -> Self {
+    pub(crate) fn from_recv(recv: mpsc::UnboundedReceiver<Bytes>) -> Self {
         Self { recv, buffer: None }
     }
 
@@ -34,7 +34,7 @@ impl AsyncRead for ReadStream {
     fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {
         // Defer to `AsyncBufRead`.
         let read_buf = ready!(self.as_mut().poll_fill_buf(cx))?;
-        let amt = std::cmp::min(read_buf.len(), buf.capacity());
+        let amt = std::cmp::min(read_buf.len(), buf.remaining());
         buf.put_slice(&read_buf[..amt]);
         self.consume(amt);
         Poll::Ready(Ok(()))
@@ -66,7 +66,7 @@ impl Read for ReadStream {
         // Defer to `BufRead`.
         let read_buf = self.fill_buf()?;
         let amt = std::cmp::min(read_buf.len(), buf.len());
-        buf.copy_from_slice(&read_buf[..amt]);
+        buf[..amt].copy_from_slice(&read_buf[..amt]);
         self.consume(amt);
         Ok(amt)
     }

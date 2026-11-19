@@ -6,7 +6,7 @@ documentation = "https://docs.rs/async-ssh2-russh/"
 description = "Lighweight async ssh2 client, wrapping russh."
 readme = "../README.md"
 edition = "2021"
-rust-version = "1.85.0"
+rust-version = "1.89.0"
 repository = { workspace = true }
 license = { workspace = true }
 
@@ -21,8 +21,9 @@ all-features = true
 
 [dependencies]
 async-promise = { version = "^0.1.1", path = "../async-promise" }
-russh = "0.55.0"
-russh-sftp = { optional = true, version = "2.1.0" }
+bytes = "1.7"
+russh = "0.65.2"
+russh-sftp = { optional = true, version = "3.0.1" }
 thiserror = ">=1.0.30, <3.0.0" # We do not depend on the breaking changed behavior: https://github.com/dtolnay/thiserror/releases/tag/2.0.0
 tokio = "1.29.0"
 tracing = "0.1.0"
