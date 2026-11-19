@@ -21,14 +21,16 @@ use tokio::task::JoinHandle;
 #[cfg(feature = "sftp")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sftp")))]
 pub mod sftp;
+pub use async_promise;
 use async_promise::Promise;
+pub use russh;
 #[doc(no_inline)]
 pub use russh::Error as SshError;
 #[cfg(feature = "sftp")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sftp")))]
 pub use russh_sftp;
+pub use tokio;
 use tracing::Instrument;
-pub use {async_promise, russh, tokio};
 mod read_stream;
 pub use read_stream::ReadStream;
 
