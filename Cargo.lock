@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "async-ssh2-russh"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-promise",
  "bytes",
